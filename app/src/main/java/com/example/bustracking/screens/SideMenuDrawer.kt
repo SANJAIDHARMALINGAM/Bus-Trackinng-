@@ -101,7 +101,7 @@ fun SideMenuDrawerContent(
 
                 Column(modifier = Modifier.clickable { onNavigate("profile") }) {
                     Text(
-                        text = strings.hiGreeting,
+                        text = "${strings.hiGreetingPrefix}$userName",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1E293B)

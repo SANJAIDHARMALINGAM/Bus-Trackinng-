@@ -30,6 +30,7 @@ data class AppStringResources(
 
     // Side Menu Drawer
     val hiGreeting: String,
+    val hiGreetingPrefix: String,
     val viewProfile: String,
     val complaints: String,
     val settings: String,
@@ -190,6 +191,7 @@ object AppStrings {
         navAccount = "Account",
 
         hiGreeting = "Hi, Thejashwini",
+        hiGreetingPrefix = "Hi, ",
         viewProfile = "View Profile",
         complaints = "Complaints",
         settings = "Settings",
@@ -345,6 +347,7 @@ object AppStrings {
         navAccount = "ಖಾತೆ",
 
         hiGreeting = "ನಮಸ್ಕಾರ, ತೇಜಸ್ವಿನಿ",
+        hiGreetingPrefix = "ನಮಸ್ಕಾರ, ",
         viewProfile = "ಪ್ರೊಫೈಲ್ ನೋಡಿ",
         complaints = "ದೂರುಗಳು",
         settings = "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",

@@ -23,9 +23,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,25 +33,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.CardMembership
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -143,9 +131,6 @@ fun ProfileScreen(
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showPhotoPreviewDialog by remember { mutableStateOf(false) }
-    var showTravelHistoryDialog by remember { mutableStateOf(false) }
-    var showBusPassesDialog by remember { mutableStateOf(false) }
-    var arrivalAlertsEnabled by remember { mutableStateOf(true) }
 
     // User Profile Information
     val userName = UserProfileManager.fullName.value
@@ -160,7 +145,7 @@ fun ProfileScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = strings.navAccount,
+                        text = strings.myProfile,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
                         color = Color(0xFF1E293B)
@@ -194,7 +179,7 @@ fun ProfileScreen(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // User Profile Photo Avatar with Press Animation (Clean, NO verification badge)
             val avatarInteractionSource = remember { MutableInteractionSource() }
@@ -254,7 +239,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // User Email Display (NO verification badge/pill)
+            // User Email Display
             Text(
                 text = userEmail,
                 fontSize = 14.sp,
@@ -262,257 +247,39 @@ fun ProfileScreen(
                 color = Color(0xFF64748B)
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // Recent Searches (Dynamic from AppPreferences, only shown if user has recent searches)
-            val recentSearchesList = remember {
-                com.example.bustracking.data.AppPreferences.getRecentSearches(context)
-            }
-
-            if (recentSearchesList.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = null,
-                            tint = Color(0xFF64748B),
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = strings.recentSearches,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF64748B)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(horizontal = 2.dp)
-                    ) {
-                        items(recentSearchesList.take(3)) { pair ->
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = Color(0xFFF1F5F9),
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                                modifier = Modifier.clickable {
-                                    onNavigateToSearch(pair.first, pair.second)
-                                }
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-                                ) {
-                                    Text(
-                                        text = "🚍 ${pair.first} ➔ ${pair.second}",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color(0xFF334155)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            // Profile Completion Progress Card
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color.White,
-                shadowElevation = 1.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = BrandGreen,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = strings.profileCompletion,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF334155)
-                            )
-                        }
-                        Text(
-                            text = "85%",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = BrandGreen
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    LinearProgressIndicator(
-                        progress = { 0.85f },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        color = BrandGreen,
-                        trackColor = Color(0xFFE2E8F0)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Commuter Travel Stats Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                TravelStatBadge(
-                    modifier = Modifier.weight(1f),
-                    count = "28",
-                    label = strings.tripsTrackedStat,
-                    icon = Icons.Default.DirectionsBus,
-                    accentColor = BrandGreen
-                )
-                TravelStatBadge(
-                    modifier = Modifier.weight(1f),
-                    count = "6",
-                    label = strings.savedRoutesStat,
-                    icon = Icons.Default.Favorite,
-                    accentColor = Color(0xFFE11D48)
-                )
-                TravelStatBadge(
-                    modifier = Modifier.weight(1f),
-                    count = "1",
-                    label = strings.activePassesStat,
-                    icon = Icons.Default.CardMembership,
-                    accentColor = Color(0xFF0284C7)
-                )
-            }
-
-            // 1. Travel & Commute Section
-            SectionHeader(title = strings.travelAndCommute)
-
-            ProfileOptionCard(
-                icon = Icons.Default.Favorite,
-                title = strings.savedRoutesAndBuses,
-                subtitle = strings.savedRoutesSubtitle,
-                onClick = { onNavigateBottom("favorites") }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            ProfileOptionCard(
-                icon = Icons.Default.History,
-                title = strings.travelHistoryTitle,
-                subtitle = strings.travelHistorySubtitle,
-                onClick = { showTravelHistoryDialog = true }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            ProfileOptionCard(
-                icon = Icons.Default.CardMembership,
-                title = strings.busPassesTitle,
-                subtitle = strings.busPassesSubtitle,
-                onClick = { showBusPassesDialog = true }
-            )
-
-            // 2. Preferences & Alerts Section
-            SectionHeader(title = strings.preferencesAndAlerts)
-
-            ProfileOptionCard(
-                icon = Icons.Default.NotificationsActive,
-                title = strings.arrivalAlertsTitle,
-                subtitle = strings.arrivalAlertsSubtitle,
-                trailingContent = {
-                    Switch(
-                        checked = arrivalAlertsEnabled,
-                        onCheckedChange = {
-                            arrivalAlertsEnabled = it
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    if (it) "Arrival alerts enabled" else "Arrival alerts disabled"
-                                )
-                            }
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = BrandGreen,
-                            uncheckedThumbColor = Color.White,
-                            uncheckedTrackColor = Color(0xFFCBD5E1)
-                        )
-                    )
-                },
-                onClick = {
-                    arrivalAlertsEnabled = !arrivalAlertsEnabled
-                    scope.launch {
-                        snackbarHostState.showSnackbar(
-                            if (arrivalAlertsEnabled) "Arrival alerts enabled" else "Arrival alerts disabled"
-                        )
-                    }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            ProfileOptionCard(
-                icon = Icons.Default.Language,
-                title = strings.language,
-                subtitle = if (currentLanguage == AppLanguage.ENGLISH) strings.defaultEnglish else strings.kannadaOption,
-                onClick = { showLanguageDialog = true }
-            )
-
-            // 3. Account & Security Section
-            SectionHeader(title = strings.accountAndSecurity)
-
+            // 1. Personal Information Card
             ProfileOptionCard(
                 icon = Icons.Default.Person,
-                title = strings.editProfileTitle,
-                subtitle = "$userPhone • $userGender",
+                title = strings.personalInformation,
+                subtitle = null,
                 onClick = { showPersonalInfoDialog = true }
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
+            // 2. Change Password Card
             ProfileOptionCard(
                 icon = Icons.Default.Lock,
-                title = strings.securitySettingsTitle,
-                subtitle = strings.securitySettingsSubtitle,
+                title = strings.changePassword,
+                subtitle = null,
                 onClick = { showChangePasswordDialog = true }
             )
 
-            // 4. Support & Logout Section
-            SectionHeader(title = strings.helpSupport)
+            Spacer(modifier = Modifier.height(14.dp))
 
+            // 3. Language Card
             ProfileOptionCard(
-                icon = Icons.Default.HelpOutline,
-                title = strings.helpSupport,
-                subtitle = "FAQs, Complaints & SOS Emergency",
-                onClick = { onNavigateBottom("help") }
+                icon = Icons.Default.Language,
+                title = strings.language,
+                subtitle = null,
+                onClick = { showLanguageDialog = true }
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Logout Card with Click Bounce Animation
+            // 4. Logout Card with Click Bounce Animation
             val logoutInteractionSource = remember { MutableInteractionSource() }
             val isLogoutPressed by logoutInteractionSource.collectIsPressedAsState()
             val logoutScale by animateFloatAsState(
@@ -594,16 +361,6 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
         }
-    }
-
-    // Travel History Modal Dialog
-    if (showTravelHistoryDialog) {
-        TravelHistoryDialog(onDismiss = { showTravelHistoryDialog = false })
-    }
-
-    // Bus Passes & Concessions Modal Dialog
-    if (showBusPassesDialog) {
-        BusPassesDialog(onDismiss = { showBusPassesDialog = false })
     }
 
     // Language Selection Modal Dialog
@@ -819,33 +576,6 @@ fun ProfileScreen(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Google Source Badge
-                    Surface(
-                        color = Color(0xFFE8F0FE),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = null,
-                                tint = Color(0xFF1A73E8),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = strings.googleFetchedBadge,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF1E40AF)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
 
                     // 1. Full Name
                     Text(
@@ -1361,401 +1091,6 @@ fun ProfileOptionCard(
     }
 }
 
-/**
- * Section Header title for categorized settings in the Account tab.
- */
-@Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color(0xFF64748B),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 18.dp, bottom = 8.dp, start = 4.dp)
-    )
-}
-
-/**
- * Commuter Travel Stats Badge displaying tracked journeys, routes, or active pass.
- */
-@Composable
-private fun TravelStatBadge(
-    modifier: Modifier = Modifier,
-    count: String,
-    label: String,
-    icon: ImageVector,
-    accentColor: Color
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = Color.White,
-        shadowElevation = 1.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = accentColor.copy(alpha = 0.12f),
-                modifier = Modifier.size(34.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = accentColor,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = count,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF1E293B)
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = label,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF64748B),
-                textAlign = TextAlign.Center,
-                maxLines = 2
-            )
-        }
-    }
-}
-
-/**
- * Data class representing a past completed trip in Travel History.
- */
-data class TripHistoryRecord(
-    val fromCity: String,
-    val fromPoint: String,
-    val toCity: String,
-    val toPoint: String,
-    val date: String,
-    val busType: String,
-    val fare: String,
-    val status: String
-)
-
-/**
- * Travel History Modal Dialog showing past journeys, bus types, dates, and fares.
- */
-@Composable
-private fun TravelHistoryDialog(
-    onDismiss: () -> Unit
-) {
-    val trips = remember {
-        listOf(
-            TripHistoryRecord(
-                fromCity = "Bengaluru",
-                fromPoint = "Majestic (KBS)",
-                toCity = "Mysuru",
-                toPoint = "Suburban Bus Stand",
-                date = "03 Sep 2026, 07:30 AM",
-                busType = "KSRTC Airavat Club Class",
-                fare = "₹340",
-                status = "Completed"
-            ),
-            TripHistoryRecord(
-                fromCity = "Shivamogga",
-                fromPoint = "KSRTC Bus Stand",
-                toCity = "Bengaluru",
-                toPoint = "Yeshwantpur",
-                date = "28 Aug 2026, 09:15 PM",
-                busType = "KSRTC Rajahamsa Executive",
-                fare = "₹410",
-                status = "Completed"
-            ),
-            TripHistoryRecord(
-                fromCity = "Mangaluru",
-                fromPoint = "KSRTC KSR-Terminal",
-                toCity = "Bengaluru",
-                toPoint = "Majestic",
-                date = "15 Aug 2026, 10:00 PM",
-                busType = "EV-Power Plus (Airavat AC)",
-                fare = "₹550",
-                status = "Completed"
-            )
-        )
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = CircleShape,
-                    color = BrandGreen.copy(alpha = 0.12f),
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = null,
-                            tint = BrandGreen,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "Travel History",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
-                    )
-                    Text(
-                        text = "Past journeys & completed trips",
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B)
-                    )
-                }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                trips.forEach { trip ->
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFF8FAFC),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "${trip.fromCity} → ${trip.toCity}",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E293B)
-                                )
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color(0xFFDCFCE7)
-                                ) {
-                                    Text(
-                                        text = trip.status,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF15803D),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = trip.busType,
-                                fontSize = 12.sp,
-                                color = BrandGreen,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = trip.date,
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF64748B)
-                                )
-                                Text(
-                                    text = trip.fare,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF334155)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        },
-        containerColor = Color.White,
-        shape = RoundedCornerShape(20.dp)
-    )
-}
-
-/**
- * Bus Passes & Concessions Modal Dialog displaying active commuter pass details.
- */
-@Composable
-private fun BusPassesDialog(
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color(0xFFE0F2FE),
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.CardMembership,
-                            contentDescription = null,
-                            tint = Color(0xFF0284C7),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "Bus Passes & Concessions",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
-                    )
-                    Text(
-                        text = "Active pass information",
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B)
-                    )
-                }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Pass Card
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFF0F172A),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "KSRTC Commuter Pass",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = BrandGreen
-                            ) {
-                                Text(
-                                    text = "ACTIVE",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = "Pass No: #KSRTC-BLR-89210",
-                            color = Color(0xFF94A3B8),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Holder: ${UserProfileManager.fullName.value}",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text("Valid From", color = Color(0xFF64748B), fontSize = 10.sp)
-                                Text("01 Sep 2026", color = Color(0xFFE2E8F0), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                            }
-                            Column {
-                                Text("Valid Till", color = Color(0xFF64748B), fontSize = 10.sp)
-                                Text("30 Sep 2026", color = Color(0xFFE2E8F0), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                    }
-                }
-
-                // Concession info
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFF1F5F9),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsBus,
-                            contentDescription = null,
-                            tint = BrandGreen,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Karnataka Shakti Scheme & Student Concessions enabled for this pass.",
-                            fontSize = 12.sp,
-                            color = Color(0xFF334155),
-                            lineHeight = 16.sp
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Done", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        },
-        containerColor = Color.White,
-        shape = RoundedCornerShape(20.dp)
-    )
-}
 
 /**
  * Verification Platforms supported for sending the 6-digit OTP.

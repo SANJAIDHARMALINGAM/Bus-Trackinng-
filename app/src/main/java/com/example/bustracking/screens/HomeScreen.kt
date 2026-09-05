@@ -40,7 +40,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.outlined.AccessTime
@@ -50,14 +49,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -67,7 +64,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -98,7 +94,6 @@ fun HomeScreen(
     onSignOut: () -> Unit
 ) {
     val strings = AppStrings.current
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -186,56 +181,30 @@ fun HomeScreen(
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = drawerState.isOpen,
-        drawerContent = {
-            SideMenuDrawerContent(
-                currentRoute = "home",
-                onNavigate = { route ->
-                    scope.launch { drawerState.close() }
-                    onNavigate(route)
+    Scaffold(
+        snackbarHost = { com.example.bustracking.components.AppSnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = strings.navHome,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = TextDark
+                    )
                 },
-                onSignOut = {
-                    scope.launch { drawerState.close() }
-                    onSignOut()
-                }
+                actions = {},
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
-        }
-    ) {
-        Scaffold(
-            snackbarHost = { com.example.bustracking.components.AppSnackbarHost(snackbarHostState) },
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = strings.navHome,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                            color = TextDark
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Open Drawer Menu",
-                                tint = TextDark
-                            )
-                        }
-                    },
-                    actions = {},
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-                )
-            },
-            bottomBar = {
-                AppBottomNavigationBar(
-                    currentRoute = "home",
-                    onNavigate = onNavigate
-                )
-            },
-            containerColor = Color(0xFFF8FAFC)
-        ) { innerPadding ->
+        },
+        bottomBar = {
+            AppBottomNavigationBar(
+                currentRoute = "home",
+                onNavigate = onNavigate
+            )
+        },
+        containerColor = Color(0xFFF8FAFC)
+    ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -683,7 +652,6 @@ fun HomeScreen(
                 }
             }
         }
-    }
 
     if (showCalendarDialog) {
         ModernCalendarDialog(
