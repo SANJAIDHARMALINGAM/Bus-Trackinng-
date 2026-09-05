@@ -13,6 +13,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -477,11 +479,14 @@ fun HelpSupportScreen(
 
     // Interactive Raise a Complaint Dialog
     if (showComplaintDialog) {
-        var category by remember { mutableStateOf("Bus Delay") }
+        val categories = if (isKannada) {
+            listOf("ಬಸ್ ವಿಳಂಬ", "ಸ್ವಚ್ಛತೆ / ಎಸಿ", "ಸಿಬ್ಬಂದಿ ನಡವಳಿಕೆ", "ಟಿಕೆಟ್ ಸಮಸ್ಯೆ", "ಇತರೆ")
+        } else {
+            listOf("Bus Delay", "Cleanliness / AC", "Staff Behavior", "Ticket Issue", "Other")
+        }
+        var category by remember(isKannada) { mutableStateOf(categories.first()) }
         var busNumber by remember { mutableStateOf("") }
         var complaintText by remember { mutableStateOf("") }
-
-        val categories = listOf("Bus Delay", "Cleanliness / AC", "Staff Behavior", "Ticket Issue", "Other")
 
         AlertDialog(
             onDismissRequest = { showComplaintDialog = false },
@@ -500,22 +505,34 @@ fun HelpSupportScreen(
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF64748B)
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            .padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        categories.take(3).forEach { cat ->
+                        categories.forEach { cat ->
                             FilterChip(
                                 selected = category == cat,
                                 onClick = { category = cat },
-                                label = { Text(cat, fontSize = 11.sp) },
+                                label = {
+                                    Text(
+                                        text = cat,
+                                        fontSize = 12.sp,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                },
+                                shape = RoundedCornerShape(20.dp),
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = ComplaintGreen,
-                                    selectedLabelColor = Color.White
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = Color(0xFF334155)
                                 )
                             )
                         }
