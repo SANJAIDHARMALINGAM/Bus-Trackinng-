@@ -1,10 +1,16 @@
 package com.example.bustracking.screens
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.SmartToy
@@ -45,12 +52,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -238,6 +247,96 @@ fun AiAssistantScreen(
         }
     }
 
+    var isListening by remember { mutableStateOf(false) }
+    var listeningStatus by remember { mutableStateOf("") }
+    var speechRecognizer: SpeechRecognizer? by remember { mutableStateOf(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                speechRecognizer?.destroy()
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun startInAppSpeechRecognizer(lang: String) {
+        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    if (isKannada) "ಧ್ವನಿ ಗುರುತಿಸುವಿಕೆ ಲಭ್ಯವಿಲ್ಲ" else "Speech recognition is not available on this device"
+                )
+            }
+            return
+        }
+
+        try {
+            speechRecognizer?.destroy()
+            val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
+            speechRecognizer = recognizer
+
+            val recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lang)
+                putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            }
+
+            recognizer.setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) {
+                    isListening = true
+                    listeningStatus = if (isKannada) "ಆಲಿಸಲಾಗುತ್ತಿದೆ... ಮಾತನಾಡಿ" else "Listening... speak now"
+                }
+
+                override fun onBeginningOfSpeech() {
+                    listeningStatus = if (isKannada) "ಧ್ವನಿ ಪತ್ತೆಯಾಗಿದೆ..." else "Hearing voice..."
+                }
+
+                override fun onRmsChanged(rmsdB: Float) {}
+                override fun onBufferReceived(buffer: ByteArray?) {}
+
+                override fun onEndOfSpeech() {
+                    listeningStatus = if (isKannada) "ಸಂಸ್ಕರಿಸಲಾಗುತ್ತಿದೆ..." else "Processing..."
+                }
+
+                override fun onError(error: Int) {
+                    isListening = false
+                    val errorMsg = when (error) {
+                        SpeechRecognizer.ERROR_NO_MATCH -> if (isKannada) "ಯಾವುದೇ ಧ್ವನಿ ಕೇಳಿಸಲಿಲ್ಲ, ಮತ್ತೊಮ್ಮೆ ಮಾತನಾಡಿ" else "Didn't catch that, please speak clearly"
+                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> if (isKannada) "ಸಮಯ ಮೀರಿದೆ, ಮೈಕ್ ಕ್ಲಿಕ್ ಮಾಡಿ" else "Speech timed out, tap mic to retry"
+                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> if (isKannada) "ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ ಅಗತ್ಯವಿದೆ" else "Microphone permission required"
+                        else -> if (isKannada) "ಧ್ವನಿ ಗುರುತಿಸುವಿಕೆ ದೋಷ, ಮತ್ತೊಮ್ಮೆ ಪ್ರಯತ್ನಿಸಿ" else "Voice input error, please try again"
+                    }
+                    scope.launch {
+                        snackbarHostState.showSnackbar(errorMsg)
+                    }
+                }
+
+                override fun onResults(results: Bundle?) {
+                    isListening = false
+                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    val spoken = matches?.firstOrNull()
+                    if (!spoken.isNullOrBlank()) {
+                        inputText = spoken
+                        sendUserMessage(spoken)
+                    }
+                }
+
+                override fun onPartialResults(partialResults: Bundle?) {}
+                override fun onEvent(eventType: Int, params: Bundle?) {}
+            })
+
+            recognizer.startListening(recognizerIntent)
+        } catch (e: Exception) {
+            isListening = false
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    if (isKannada) "ಧ್ವನಿ ಗುರುತಿಸುವಿಕೆಯನ್ನು ಪ್ರಾರಂಭಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ" else "Could not start voice recognition: ${e.localizedMessage ?: "Unknown error"}"
+                )
+            }
+        }
+    }
+
     // Voice recognition launcher for speech input
     val speechLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -252,23 +351,48 @@ fun AiAssistantScreen(
         }
     }
 
-    fun startVoiceInput() {
+    fun launchVoiceRecognizer() {
+        val primaryLang = if (isKannada) "kn-IN" else "en-IN"
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            val primaryLang = if (isKannada) "kn-IN" else "en-IN"
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, primaryLang)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, primaryLang)
-            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
+            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_PROMPT, strings.aiSpeakPrompt)
         }
+
         try {
             speechLauncher.launch(intent)
         } catch (e: Exception) {
+            startInAppSpeechRecognizer(primaryLang)
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launchVoiceRecognizer()
+        } else {
             scope.launch {
                 snackbarHostState.showSnackbar(
-                    if (isKannada) "ಧ್ವನಿ ಇನ್‌ಪುಟ್ ಲಭ್ಯವಿಲ್ಲ" else "Voice input is not supported on this device"
+                    if (isKannada) "ಧ್ವನಿ ಇನ್‌ಪುಟ್‌ಗಾಗಿ ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ ಅಗತ್ಯವಿದೆ" else "Microphone permission is required for voice input"
                 )
             }
+        }
+    }
+
+    fun startVoiceInput() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            launchVoiceRecognizer()
+        } else {
+            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 
@@ -347,35 +471,6 @@ fun AiAssistantScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Suggestion chips at top
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(vertical = 10.dp),
-                contentPadding = PaddingValues(horizontal = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(suggestionChips) { chip ->
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFFF1F5F9),
-                        modifier = Modifier.clickable {
-                            val clean = if (chip.contains(" ")) chip.substringAfter(" ").trim() else chip.trim()
-                            sendUserMessage(clean)
-                        }
-                    ) {
-                        Text(
-                            text = chip,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF334155),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
-                    }
-                }
-            }
-
             // Chat Messages List
             LazyColumn(
                 state = listState,
@@ -479,6 +574,89 @@ fun AiAssistantScreen(
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            // In-app speech recognition listening bar
+            if (isListening) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFFFEF2F2),
+                    border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.Mic,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = listeningStatus,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF991B1B)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                try {
+                                    speechRecognizer?.stopListening()
+                                } catch (_: Exception) {}
+                                isListening = false
+                            },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = "Cancel",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Suggestion Chips (docked right above the chat input box)
+            Surface(
+                color = Color(0xFFF8FAFC),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(suggestionChips) { chip ->
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            modifier = Modifier.clickable {
+                                val clean = if (chip.contains(" ")) chip.substringAfter(" ").trim() else chip.trim()
+                                sendUserMessage(clean)
+                            }
+                        ) {
+                            Text(
+                                text = chip,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF334155),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
                         }
                     }
                 }

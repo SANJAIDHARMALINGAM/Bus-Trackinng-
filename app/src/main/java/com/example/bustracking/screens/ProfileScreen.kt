@@ -264,115 +264,71 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Recent Searches Chips (Added from Image 2, replacing verified badge)
+            // Recent Searches (Dynamic from AppPreferences, only shown if user has recent searches)
             val recentSearchesList = remember {
                 com.example.bustracking.data.AppPreferences.getRecentSearches(context)
             }
 
-            val suggestionChips = remember(currentLanguage) {
-                listOf(
-                    strings.aiChipMysuru,
-                    strings.aiChipShivamogga,
-                    strings.aiChipFares,
-                    strings.aiChipLiveTrack
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
+            if (recentSearchesList.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = null,
-                        tint = Color(0xFF64748B),
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = strings.recentSearches,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF64748B)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp)
-                ) {
-                    // 1. Dynamic recent searches from AppPreferences
-                    items(recentSearchesList.take(3)) { pair ->
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color(0xFFF1F5F9),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            modifier = Modifier.clickable {
-                                onNavigateToSearch(pair.first, pair.second)
-                            }
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = "🚍 ${pair.first} ➔ ${pair.second}",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF334155)
-                                )
-                            }
-                        }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = null,
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = strings.recentSearches,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF64748B)
+                        )
                     }
 
-                    // 2. Preset suggestion search chips matching Image 2
-                    items(suggestionChips) { chip ->
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color(0xFFF1F5F9),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            modifier = Modifier.clickable {
-                                when {
-                                    chip.contains("Mysuru") || chip.contains("ಮೈಸೂರು") -> {
-                                        onNavigateToSearch("Bengaluru", "Mysuru")
-                                    }
-                                    chip.contains("Shivamogga") || chip.contains("ಶಿವಮೊಗ್ಗ") -> {
-                                        onNavigateToSearch("Bengaluru", "Shivamogga")
-                                    }
-                                    chip.contains("Fares") || chip.contains("ದರ") || chip.contains("fares") -> {
-                                        onNavigateToSearch("Bengaluru", "Mysuru")
-                                    }
-                                    chip.contains("Live") || chip.contains("ಲೈವ್") || chip.contains("live") || chip.contains("Track") -> {
-                                        onNavigateToLiveTracking("101")
-                                    }
-                                    else -> {
-                                        onNavigateToSearch("Bengaluru", "Mysuru")
-                                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp)
+                    ) {
+                        items(recentSearchesList.take(3)) { pair ->
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = Color(0xFFF1F5F9),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                modifier = Modifier.clickable {
+                                    onNavigateToSearch(pair.first, pair.second)
+                                }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "🚍 ${pair.first} ➔ ${pair.second}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF334155)
+                                    )
                                 }
                             }
-                        ) {
-                            Text(
-                                text = chip,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF334155),
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-                            )
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Profile Completion Progress Card
             Surface(
