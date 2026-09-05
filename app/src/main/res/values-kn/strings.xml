@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ಬಸ್ ಟ್ರ್ಯಾಕಿಂಗ್</string>
+    <string name="google_maps_key">YOUR_GOOGLE_MAPS_API_KEY</string>
+    <string name="my_profile">ನನ್ನ ಪ್ರೊಫೈಲ್</string>
+    <string name="personal_info">ವೈಯಕ್ತಿಕ ಮಾಹಿತಿ</string>
+    <string name="change_password">ಪಾಸ್‌ವರ್ಡ್ ಬದಲಾಯಿಸಿ</string>
+    <string name="language">ಭಾಷೆ</string>
+    <string name="logout">ಲಾಗ್ ಔಟ್</string>
+    <string name="home">ಮುಖಪುಟ</string>
+    <string name="favourite">ಮೆಚ್ಚಿನವುಗಳು</string>
+    <string name="ai">ಎಐ</string>
+    <string name="help">ಸಹಾಯ</string>
+    <string name="account">ಖಾತೆ</string>
+</resources>
