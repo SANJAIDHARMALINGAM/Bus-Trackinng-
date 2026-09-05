@@ -1,8 +1,18 @@
 package com.example.bustracking.screens
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,17 +39,25 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -54,6 +72,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -75,6 +94,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.bustracking.data.AppLanguage
+import com.example.bustracking.data.AppLanguageManager
 import com.example.bustracking.data.AppPreferences
 import com.example.bustracking.data.AppStrings
 import com.example.bustracking.navigation.AppBottomNavigationBar
@@ -92,7 +113,7 @@ data class FavRouteItem(
     var isFavorite: Boolean = true
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun FavoritesScreen(
     onBackClick: () -> Unit,
@@ -101,6 +122,10 @@ fun FavoritesScreen(
 ) {
     val context = LocalContext.current
     val strings = AppStrings.current
+    val currentLang = AppLanguageManager.currentLanguage.value
+    val isKannada = currentLang == AppLanguage.KANNADA
+    val haptic = LocalHapticFeedback.current
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
@@ -109,6 +134,14 @@ fun FavoritesScreen(
     var searchInput by remember { mutableStateOf("") }
     var activeSearchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
+
+    var selectedRouteIds by remember { mutableStateOf(setOf<String>()) }
+    val isSelectionMode = selectedRouteIds.isNotEmpty()
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = isSelectionMode) {
+        selectedRouteIds = emptySet()
+    }
 
     val defaultRoutes = remember {
         listOf(
@@ -160,48 +193,94 @@ fun FavoritesScreen(
     Scaffold(
         snackbarHost = { com.example.bustracking.components.AppSnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = strings.favouriteRoutesTitle,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Color(0xFF1E293B)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color(0xFF1E293B)
+            if (isSelectionMode) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = if (isKannada) "${selectedRouteIds.size} ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ" else "${selectedRouteIds.size} Selected",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color(0xFF1E293B)
                         )
-                    }
-                },
-                actions = {
-                    // Interactive "+" button to add a new favorite route
-                    IconButton(
-                        onClick = { showAddDialog = true },
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color(0xFFDEF7EC),
-                            modifier = Modifier.size(38.dp)
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { selectedRouteIds = emptySet() }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Cancel Selection",
+                                tint = Color(0xFF1E293B)
+                            )
+                        }
+                    },
+                    actions = {
+                        val allSelected = filteredRoutes.isNotEmpty() && filteredRoutes.all { it.id in selectedRouteIds }
+                        IconButton(onClick = {
+                            selectedRouteIds = if (allSelected) {
+                                emptySet()
+                            } else {
+                                filteredRoutes.map { it.id }.toSet()
+                            }
+                        }) {
+                            Icon(
+                                imageVector = if (allSelected) Icons.Default.Deselect else Icons.Default.SelectAll,
+                                contentDescription = if (allSelected) "Deselect All" else "Select All",
+                                tint = BrandGreen
+                            )
+                        }
+                        IconButton(onClick = { showDeleteConfirmDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Selected",
+                                tint = Color(0xFFEF4444)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF1F5F9))
+                )
+            } else {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = strings.favouriteRoutesTitle,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = Color(0xFF1E293B)
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color(0xFF1E293B)
+                            )
+                        }
+                    },
+                    actions = {
+                        // Interactive "+" button to add a new favorite route
+                        IconButton(
+                            onClick = { showAddDialog = true },
+                            modifier = Modifier.padding(end = 8.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Add Favorite Route",
-                                    tint = BrandGreen,
-                                    modifier = Modifier.size(22.dp)
-                                )
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFDEF7EC),
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Add Favorite Route",
+                                        tint = BrandGreen,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
                             }
                         }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-            )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                )
+            }
         },
         bottomBar = {
             AppBottomNavigationBar(
@@ -322,12 +401,37 @@ fun FavoritesScreen(
                 }
             } else {
                 items(filteredRoutes, key = { it.id }) { item ->
+                    val isSelected = item.id in selectedRouteIds
+
                     Card(
-                        onClick = { onRouteClick(item.from, item.to) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .combinedClickable(
+                                onClick = {
+                                    if (isSelectionMode) {
+                                        selectedRouteIds = if (isSelected) {
+                                            selectedRouteIds - item.id
+                                        } else {
+                                            selectedRouteIds + item.id
+                                        }
+                                    } else {
+                                        onRouteClick(item.from, item.to)
+                                    }
+                                },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    selectedRouteIds = if (isSelected) {
+                                        selectedRouteIds - item.id
+                                    } else {
+                                        selectedRouteIds + item.id
+                                    }
+                                }
+                            ),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        border = if (isSelected) BorderStroke(1.5.dp, BrandGreen) else null,
+                        colors = CardDefaults.cardColors(containerColor = if (isSelected) Color(0xFFF0FDF4) else Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 3.dp else 1.dp)
                     ) {
                         Row(
                             modifier = Modifier
@@ -340,21 +444,49 @@ fun FavoritesScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                IconButton(onClick = {
-                                    val updated = routes.map {
-                                        if (it.id == item.id) it.copy(isFavorite = !it.isFavorite) else it
+                                // Selection Checkbox (visible in selection mode)
+                                AnimatedVisibility(
+                                    visible = isSelectionMode,
+                                    enter = fadeIn() + expandHorizontally(),
+                                    exit = fadeOut() + shrinkHorizontally()
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(end = 12.dp)
+                                            .size(24.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isSelected) BrandGreen else Color.Transparent)
+                                            .border(2.dp, if (isSelected) BrandGreen else Color(0xFFCBD5E1), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = "Selected",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
                                     }
-                                    persistRoutes(updated)
-                                }) {
-                                    Icon(
-                                        imageVector = if (item.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = "Favorite",
-                                        tint = if (item.isFavorite) BrandGreen else Color(0xFF94A3B8),
-                                        modifier = Modifier.size(22.dp)
-                                    )
                                 }
 
-                                Spacer(modifier = Modifier.width(10.dp))
+                                if (!isSelectionMode) {
+                                    IconButton(onClick = {
+                                        val updated = routes.map {
+                                            if (it.id == item.id) it.copy(isFavorite = !it.isFavorite) else it
+                                        }
+                                        persistRoutes(updated)
+                                    }) {
+                                        Icon(
+                                            imageVector = if (item.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                            contentDescription = "Favorite",
+                                            tint = if (item.isFavorite) BrandGreen else Color(0xFF94A3B8),
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                }
 
                                 Column {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -387,39 +519,128 @@ fun FavoritesScreen(
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                // Delete action if route was added or can be removed
-                                IconButton(
-                                    onClick = {
-                                        val updated = routes.filter { it.id != item.id }
-                                        persistRoutes(updated)
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Removed ${item.from} ➔ ${item.to}")
-                                        }
-                                    },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
+                                if (!isSelectionMode) {
+                                    // Individual Delete Action
+                                    IconButton(
+                                        onClick = {
+                                            val beforeDelete = routes
+                                            val updated = routes.filter { it.id != item.id }
+                                            persistRoutes(updated)
+                                            scope.launch {
+                                                val result = snackbarHostState.showSnackbar(
+                                                    message = if (isKannada) "ತೆಗೆದುಹಾಕಲಾಗಿದೆ: ${item.from} ➔ ${item.to}" else "Removed ${item.from} ➔ ${item.to}",
+                                                    actionLabel = if (isKannada) "ರದ್ದುಮಾಡಿ" else "Undo"
+                                                )
+                                                if (result == SnackbarResult.ActionPerformed) {
+                                                    persistRoutes(beforeDelete)
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DeleteOutline,
+                                            contentDescription = "Remove route",
+                                            tint = Color(0xFF94A3B8),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(4.dp))
+
                                     Icon(
-                                        imageVector = Icons.Default.DeleteOutline,
-                                        contentDescription = "Remove route",
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = "View route",
                                         tint = Color(0xFF94A3B8),
                                         modifier = Modifier.size(18.dp)
                                     )
+                                } else {
+                                    if (isSelected) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = BrandGreen.copy(alpha = 0.12f)
+                                        ) {
+                                            Text(
+                                                text = if (isKannada) "ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ" else "Selected",
+                                                color = BrandGreen,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
                                 }
-
-                                Spacer(modifier = Modifier.width(4.dp))
-
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                    contentDescription = "View route",
-                                    tint = Color(0xFF94A3B8),
-                                    modifier = Modifier.size(18.dp)
-                                )
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    // Batch Delete Confirmation Dialog
+    if (showDeleteConfirmDialog) {
+        val count = selectedRouteIds.size
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = {
+                Text(
+                    text = if (isKannada) "ಮೆಚ್ಚಿನ ಮಾರ್ಗಗಳನ್ನು ಅಳಿಸುವುದೇ?" else "Delete Favorite Routes?",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFF1E293B)
+                )
+            },
+            text = {
+                Text(
+                    text = if (isKannada)
+                        "ಆಯ್ಕೆಮಾಡಿದ $count ಮೆಚ್ಚಿನ ಮಾರ್ಗಗಳನ್ನು ಅಳಿಸಲು ನೀವು ಖಚಿತವಾಗಿ ಬಯಸುವಿರಾ?"
+                    else
+                        "Are you sure you want to delete $count selected favorite ${if (count == 1) "route" else "routes"}?",
+                    fontSize = 14.sp,
+                    color = Color(0xFF64748B)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val beforeDelete = routes
+                        val toDelete = selectedRouteIds
+                        val remaining = routes.filterNot { it.id in toDelete }
+                        persistRoutes(remaining)
+                        selectedRouteIds = emptySet()
+                        showDeleteConfirmDialog = false
+                        scope.launch {
+                            val result = snackbarHostState.showSnackbar(
+                                message = if (isKannada) "$count ಮಾರ್ಗಗಳನ್ನು ಅಳಿಸಲಾಗಿದೆ" else "Deleted $count favorite ${if (count == 1) "route" else "routes"}",
+                                actionLabel = if (isKannada) "ರದ್ದುಮಾಡಿ" else "Undo"
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                persistRoutes(beforeDelete)
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = if (isKannada) "ಅಳಿಸಿ" else "Delete",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                    Text(
+                        text = if (isKannada) "ರದ್ದು" else "Cancel",
+                        color = Color(0xFF64748B)
+                    )
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(20.dp)
+        )
     }
 
     // Interactive Add Favorite Route Dialog
