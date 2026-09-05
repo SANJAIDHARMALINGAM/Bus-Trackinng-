@@ -115,15 +115,6 @@ fun AiAssistantScreen(
         )
     }
 
-    val suggestionChips = remember(currentLang) {
-        listOf(
-            strings.aiChipMysuru,
-            strings.aiChipShivamogga,
-            strings.aiChipFares,
-            strings.aiChipLiveTrack
-        )
-    }
-
     fun sendUserMessage(question: String) {
         val trimmed = question.trim()
         if (trimmed.isEmpty()) return
@@ -423,27 +414,12 @@ fun AiAssistantScreen(
                             }
                         }
                         Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = strings.aiTitle,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 17.sp,
-                                color = Color(0xFF1E293B)
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(7.dp)
-                                        .background(Color(0xFF10B981), CircleShape)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = strings.aiSubtitle,
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF64748B)
-                                )
-                            }
-                        }
+                        Text(
+                            text = strings.aiTitle,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color(0xFF1E293B)
+                        )
                     }
                 },
                 navigationIcon = {
@@ -623,39 +599,6 @@ fun AiAssistantScreen(
                                 contentDescription = "Cancel",
                                 tint = Color(0xFFEF4444),
                                 modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Suggestion Chips (docked right above the chat input box)
-            Surface(
-                color = Color(0xFFF8FAFC),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(suggestionChips) { chip ->
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color.White,
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            modifier = Modifier.clickable {
-                                val clean = if (chip.contains(" ")) chip.substringAfter(" ").trim() else chip.trim()
-                                sendUserMessage(clean)
-                            }
-                        ) {
-                            Text(
-                                text = chip,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF334155),
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             )
                         }
                     }
