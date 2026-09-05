@@ -486,7 +486,14 @@ fun HelpSupportScreen(
         }
         var category by remember(isKannada) { mutableStateOf(categories.first()) }
         var busNumber by remember { mutableStateOf("") }
+        var route by remember { mutableStateOf("") }
         var complaintText by remember { mutableStateOf("") }
+        var hasAttemptedSubmit by remember { mutableStateOf(false) }
+
+        val isBusNumberValid = busNumber.trim().isNotBlank()
+        val isRouteValid = route.trim().isNotBlank()
+        val isComplaintValid = complaintText.trim().isNotBlank()
+        val isFormValid = isBusNumberValid && isRouteValid && isComplaintValid
 
         AlertDialog(
             onDismissRequest = { showComplaintDialog = false },
@@ -541,17 +548,42 @@ fun HelpSupportScreen(
                     OutlinedTextField(
                         value = busNumber,
                         onValueChange = { busNumber = it },
-                        label = { Text(if (isKannada) "ಬಸ್ ಸಂಖ್ಯೆ / ಮಾರ್ಗ (ಐಚ್ಛಿಕ)" else "Bus Number / Route (Optional)") },
+                        label = { Text(if (isKannada) "ಬಸ್ ಸಂಖ್ಯೆ *" else "Bus Number *") },
+                        placeholder = { Text(if (isKannada) "ಉದಾ: KA-01-F-1234 / 201" else "e.g., KA-01-F-1234 / 201") },
+                        isError = hasAttemptedSubmit && !isBusNumberValid,
+                        supportingText = if (hasAttemptedSubmit && !isBusNumberValid) {
+                            { Text(if (isKannada) "ಬಸ್ ಸಂಖ್ಯೆ ಕಡ್ಡಾಯವಾಗಿದೆ" else "Bus Number is required", color = Color(0xFFDC2626), fontSize = 11.sp) }
+                        } else null,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = route,
+                        onValueChange = { route = it },
+                        label = { Text(if (isKannada) "ಮಾರ್ಗ *" else "Route *") },
+                        placeholder = { Text(if (isKannada) "ಉದಾ: ಬೆಂಗಳೂರು - ಮೈಸೂರು" else "e.g., Bengaluru - Mysuru") },
+                        isError = hasAttemptedSubmit && !isRouteValid,
+                        supportingText = if (hasAttemptedSubmit && !isRouteValid) {
+                            { Text(if (isKannada) "ಮಾರ್ಗ ಕಡ್ಡಾಯವಾಗಿದೆ" else "Route is required", color = Color(0xFFDC2626), fontSize = 11.sp) }
+                        } else null,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedTextField(
                         value = complaintText,
                         onValueChange = { complaintText = it },
-                        label = { Text(if (isKannada) "ದೂರಿನ ವಿವರಗಳು" else "Complaint Description") },
+                        label = { Text(if (isKannada) "ದೂರಿನ ವಿವರಗಳು *" else "Complaint Description *") },
+                        placeholder = { Text(if (isKannada) "ದಯವಿಟ್ಟು ಸಮಸ್ಯೆಯನ್ನು ವಿವರಿಸಿ..." else "Please describe the issue...") },
+                        isError = hasAttemptedSubmit && !isComplaintValid,
+                        supportingText = if (hasAttemptedSubmit && !isComplaintValid) {
+                            { Text(if (isKannada) "ದೂರಿನ ವಿವರಣೆ ಕಡ್ಡಾಯವಾಗಿದೆ" else "Description is required", color = Color(0xFFDC2626), fontSize = 11.sp) }
+                        } else null,
                         minLines = 3,
                         maxLines = 4,
                         modifier = Modifier.fillMaxWidth()
@@ -561,13 +593,16 @@ fun HelpSupportScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        showComplaintDialog = false
-                        val complaintId = "KB-${(1000..9999).random()}"
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                if (isKannada) "ದೂರು #$complaintId ಯಶಸ್ವಿಯಾಗಿ ದಾಖಲಾಗಿದೆ! 24 ಗಂಟೆಗಳಲ್ಲಿ ಪರಿಹರಿಸಲಾಗುವುದು."
-                                else "Complaint #$complaintId submitted! Our team will resolve it within 24 hours."
-                            )
+                        hasAttemptedSubmit = true
+                        if (isFormValid) {
+                            showComplaintDialog = false
+                            val complaintId = "KB-${(1000..9999).random()}"
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    if (isKannada) "ದೂರು #$complaintId (ಬಸ್: ${busNumber.trim()}, ಮಾರ್ಗ: ${route.trim()}) ದಾಖಲಾಗಿದೆ! 24 ಗಂಟೆಗಳಲ್ಲಿ ಪರಿಹರಿಸಲಾಗುವುದು."
+                                    else "Complaint #$complaintId (Bus: ${busNumber.trim()}, Route: ${route.trim()}) submitted! Our team will resolve it within 24 hours."
+                                )
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ComplaintGreen)
